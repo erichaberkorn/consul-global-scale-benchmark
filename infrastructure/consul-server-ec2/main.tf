@@ -17,6 +17,7 @@ EOF
     enable_streaming          = var.enable_streaming
     consul_download_url       = var.consul_download_url
     gossip_encryption_key     = var.gossip_encryption_key
+    bootstrap_token           = var.bootstrap_token
     mount_ssd_volume          = var.mount_ssd_volume
   }
 }
@@ -229,4 +230,3 @@ resource "aws_elb" "consul_elb" {
     Name = "consul-ui-${var.project}-elb"
   }
 }
-

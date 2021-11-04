@@ -97,3 +97,7 @@ variable "gossip_encryption_key" {
 variable "mount_ssd_volume" {
   default = false
 }
+
+variable "bootstrap_token" {
+  type = string
+}

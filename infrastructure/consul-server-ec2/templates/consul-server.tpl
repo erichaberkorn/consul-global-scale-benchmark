@@ -11,36 +11,37 @@ sudo rm -rf /etc/motd
 sudo rm -rf /var/run/motd
 sudo rm -rf /etc/update-motd.d/*
 sudo tee /etc/motd > /dev/null <<"EOF"
-                                                              
-                             @@@@@@@@@                               
-                         @@@@@@@@@@@@@@@@@@                          
-                      @@@@@@@          @@@@                          
-                     @@@@@                                           
-                   @@@@                       @@@                    
-                  @@@@                                               
-                  @@@                       @@   @@                  
-                 @@@@          @@@@@@       @@@ @@@@                 
-                 @@@@         @@@@@@@  @@@@                          
-                 @@@@          @@@@@@       @@@  @@@                 
-                  @@@                       @@@  @@                  
-                  @@@@                                               
-                   @@@@                       @@@                    
-                    @@@@@                                            
-                      @@@@@@            @@@                          
-                        @@@@@@@@@@@@@@@@@@@                          
-                            @@@@@@@@@@@                              
-                                                                                                        
-                  @@@@@                           @@                 
-                 @@      @@@@  @@@@@  @@@@ @@  @@ @@                 
-                 @@     @   @@ @  @@ @@    @@  @@ @@                 
-                 @@     @   @@ @  @@    @@ @@  @@ @@                 
-                  @@@@@ @@@@@  @  @@ @@@@@ @@@@@@ @@                 
-        
+
+                             @@@@@@@@@
+                         @@@@@@@@@@@@@@@@@@
+                      @@@@@@@          @@@@
+                     @@@@@
+                   @@@@                       @@@
+                  @@@@
+                  @@@                       @@   @@
+                 @@@@          @@@@@@       @@@ @@@@
+                 @@@@         @@@@@@@  @@@@
+                 @@@@          @@@@@@       @@@  @@@
+                  @@@                       @@@  @@
+                  @@@@
+                   @@@@                       @@@
+                    @@@@@
+                      @@@@@@            @@@
+                        @@@@@@@@@@@@@@@@@@@
+                            @@@@@@@@@@@
+
+                  @@@@@                           @@
+                 @@      @@@@  @@@@@  @@@@ @@  @@ @@
+                 @@     @   @@ @  @@ @@    @@  @@ @@
+                 @@     @   @@ @  @@    @@ @@  @@ @@
+                  @@@@@ @@@@@  @  @@ @@@@@ @@@@@@ @@
+
 Hello there, this is a Consul server! Have fun exploring :)
 EOF
 
 export INTERNAL_IP_ADDRESS=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 export PUBLIC_IP_ADDRESS=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
+export CONSUL_HTTP_TOKEN=${bootstrap_token}
 
 echo "Setting hostname....."
 sudo tee /etc/hostname > /dev/null <<"EOF"
@@ -101,7 +102,7 @@ EOT
 
   systemctl restart datadog-agent
 
-  # This allows datadog to finish coming online and 
+  # This allows datadog to finish coming online and
   # capture all logs for the system services like consul
   sleep 5
 fi
@@ -110,11 +111,11 @@ fi
 cd /tmp
 CONSUL_DOWNLOAD_URL="${consul_download_url}"
 if [ -z $${CONSUL_DOWNLOAD_URL} ];
-then 
+then
   echo "using releases.hashicorp.com to download consul"
   wget https://releases.hashicorp.com/consul/${consul_version}/consul_${consul_version}_linux_amd64.zip -O ./consul.zip
   unzip ./consul.zip
-else 
+else
   echo "using download url '$CONSUL_DOWNLOAD_URL' to download consul"
   curl -sL --fail -o ./consul "$CONSUL_DOWNLOAD_URL"
 fi
@@ -164,6 +165,17 @@ client_addr = "0.0.0.0"
 
 ports {
   grpc = 8502
+}
+
+acl = {
+  enabled = true
+  default_policy = "deny"
+  enable_token_persistence = true
+  down_policy = "extend-cache"
+  enable_token_persistence = true
+  tokens = {
+    master = "${bootstrap_token}"
+  }
 }
 
 connect {
