@@ -10,7 +10,11 @@ variable "vpc_id" {
   default = ""
 }
 
-variable "subnet_ids" {
+variable "private_subnets" {
+  default = []
+}
+
+variable "public_subnets" {
   default = []
 }
 
@@ -99,5 +103,9 @@ variable "mount_ssd_volume" {
 }
 
 variable "bootstrap_token" {
+  type = string
+}
+
+variable "lb_ingress_ip" {
   type = string
 }
