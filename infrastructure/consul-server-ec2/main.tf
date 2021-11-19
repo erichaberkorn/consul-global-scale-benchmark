@@ -10,6 +10,7 @@ EOF
     consul_version            = var.consul_version
     consul_datacenter         = var.consul_datacenter
     consul_primary_datacenter = var.consul_primary_datacenter
+    consul_primary_gateway = var.consul_primary_gateway
     consul_log_level          = var.consul_log_level
     retry_join_tag            = var.retry_join_tag
     hostname                  = "${var.project}-consul-server-${var.region}-${count.index + 1}"
@@ -62,81 +63,11 @@ resource "aws_security_group" "consul" {
   description = "Created using Terraform"
   vpc_id      = var.vpc_id
 
-  # SSH access from anywhere
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Allow consul ui access from elb
-  ingress {
-    from_port       = 8500
-    to_port         = 8500
-    protocol        = "tcp"
-    security_groups = [aws_security_group.consul-elb.id]
-  }
-
-  ingress {
-    from_port   = 8301
-    to_port     = 8301
-    protocol    = "tcp"
-    cidr_blocks = ["172.16.0.0/16"]
-  }
-
-  ingress {
-    from_port   = 8301
-    to_port     = 8301
-    protocol    = "udp"
-    cidr_blocks = ["172.16.0.0/16"]
-  }
-
-  ingress {
-    from_port       = 8301
-    to_port         = 8301
-    protocol        = "tcp"
-    security_groups = var.consul_client_ingress_security_groups
-  }
-
-  ingress {
-    from_port       = 8301
-    to_port         = 8301
-    protocol        = "udp"
-    security_groups = var.consul_client_ingress_security_groups
-  }
-
-  # Serf WAN (TCP) port is currently open to the world.
-  # WARNING: Don't use this in production.
-  ingress {
-    from_port   = 8302
-    to_port     = 8302
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Serf WAN (UDP) port is currently open to the world.
-  # WARNING: Don't use this in production.
-  ingress {
-    from_port   = 8302
-    to_port     = 8302
-    protocol    = "udp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Server RPC allow all for WAN
-  ingress {
-    from_port   = 8300
-    to_port     = 8300
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   ingress {
     from_port = 0
     to_port   = 0
     protocol  = "-1"
-    self      = "true"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   # outbound internet access
@@ -158,7 +89,7 @@ resource "aws_security_group" "consul-elb" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks     = ["${var.lb_ingress_ip}/32"]
   }
 
   egress {
@@ -184,10 +115,7 @@ resource "aws_instance" "consul_server" {
 
   iam_instance_profile = var.iam_instance_profile
 
-  # We're going to launch into the same subnet as our ELB. In a production
-  # environment it's more common to have a separate private subnet for
-  # backend instances.
-  subnet_id = element(var.subnet_ids, count.index % length(var.subnet_ids))
+  subnet_id = element(var.private_subnets, count.index % length(var.private_subnets))
 
   user_data_base64 = element(data.template_cloudinit_config.consul_server_config.*.rendered, count.index)
 
@@ -202,7 +130,7 @@ resource "aws_elb" "consul_elb" {
   count = var.enable_ui_elb ? 1 : 0
 
   name            = "consul-ui-${var.project}-elb"
-  subnets         = var.subnet_ids
+  subnets         = var.public_subnets
   security_groups = [aws_security_group.consul-elb.id]
 
   listener {

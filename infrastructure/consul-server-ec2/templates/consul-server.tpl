@@ -40,7 +40,6 @@ Hello there, this is a Consul server! Have fun exploring :)
 EOF
 
 export INTERNAL_IP_ADDRESS=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
-export PUBLIC_IP_ADDRESS=$(curl http://169.254.169.254/latest/meta-data/public-ipv4)
 export CONSUL_HTTP_TOKEN=${bootstrap_token}
 
 echo "Setting hostname....."
@@ -150,6 +149,9 @@ log_level = "${consul_log_level}"
 
 datacenter = "${consul_datacenter}"
 primary_datacenter = "${consul_primary_datacenter}"
+%{ if consul_primary_gateway != "" ~}
+primary_gateways = [ "${consul_primary_gateway}" ]
+%{ endif ~}
 encrypt = "${gossip_encryption_key}"
 
 server = true
@@ -186,6 +188,7 @@ connect {
     csr_max_concurrent = 12
     csr_max_per_second = 0
   }
+  enable_mesh_gateway_wan_federation = true
 }
 
 rpc {
@@ -195,8 +198,6 @@ rpc {
 enable_central_service_config = true
 
 advertise_addr = "$INTERNAL_IP_ADDRESS"
-advertise_addr_wan = "$PUBLIC_IP_ADDRESS"
-retry_join_wan = ["${primary_cluster_addr}"]
 retry_join = ["provider=aws tag_key=${retry_join_tag} tag_value=${retry_join_tag}"]
 
 # TLS config

@@ -10,7 +10,11 @@ variable "vpc_id" {
   default = ""
 }
 
-variable "subnet_ids" {
+variable "private_subnets" {
+  default = []
+}
+
+variable "public_subnets" {
   default = []
 }
 
@@ -28,6 +32,11 @@ variable "consul_version" {
 
 variable "consul_datacenter" {
   default = "dc1"
+}
+
+variable "consul_primary_gateway" {
+  type = string
+  default = ""
 }
 
 variable "consul_primary_datacenter" {
@@ -99,5 +108,9 @@ variable "mount_ssd_volume" {
 }
 
 variable "bootstrap_token" {
+  type = string
+}
+
+variable "lb_ingress_ip" {
   type = string
 }
